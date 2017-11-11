@@ -1,34 +1,40 @@
+# Factory class
 class Factory
 
-  def self.new(*attributes, &block)
+  def self.new(*arguments, &block)
 
-    if attributes.first.is_a? String
-      class_name = attributes.shift
-    else
-      class_name = nil
-    end
+    # Create class name
+    class_name = if arguments.first.is_a? String
+                   unless /^[A-Z]/ =~ arguments.first
+                     raise(NameError, "identifier #{arguments.first} needs to be constant")
+                   end
+                   arguments.shift
+                 else
+                   nil
+                 end
 
+    # Create class instance
     class_instance = Class.new do
 
-      attr_accessor *attributes
+      attr_accessor *arguments
 
-      class_eval(&block) if block_given?
+      # initialize
+      define_method :initialize do |*class_arguments|
 
-      define_method :initialize do |*construct_attributes|
-
-        if construct_attributes.size > attributes.size
+        if class_arguments.size > arguments.size
           raise ArgumentError.new('struct size differs')
         end
 
-        construct_attributes.each_with_index do |value, index|
-          instance_variable_set("@#{attributes[index]}", value)
+        class_arguments.each_with_index do |value, index|
+          instance_variable_set("@#{arguments[index]}", value)
         end
 
       end
 
+      # to_s
       define_method :to_s do
 
-        key_value_attributes = attributes.map do |variable|
+        key_value_attributes = arguments.map do |variable|
           value = instance_variable_get("@#{variable}")
           ":#{variable.to_s}=" << value.inspect
         end
@@ -36,15 +42,49 @@ class Factory
         "#<factory #{self.class.name} #{key_value_attributes.join(' ')}>"
       end
 
-      alias_method :inspect, :to_s
-
-      def [](key)
-        p "Test #{key}"
+      # ==
+      def ==(other)
+        other.class == self.class && other.values == self.values
       end
 
+      # []
+      def [](key)
+        if key.is_a? Integer
+          key = members[key].to_s.tr('@', '')
+        end
+        instance_variable_get "@#{key}"
+      end
+
+      # []=
+      def []=(key, value)
+        instance_variable_set("@#{key}", value)
+      end
+
+      # size
+      def size
+        self.values.size
+      end
+
+      # values
+      def values
+        members.map { |a| instance_variable_get("#{a}") }
+      end
+
+      def members
+        instance_variables
+      end
+
+      # alias inspect -> to_s
+      alias_method :inspect, :to_s
+      alias_method :length, :size
+      alias_method :values, :to_a
+      alias_method :members, :to_h
+
+      # Eval block
+      class_eval(&block) if block_given?
     end
 
+    # Define and return class
     class_name ? const_set(class_name, class_instance) : class_instance
-
   end
 end
