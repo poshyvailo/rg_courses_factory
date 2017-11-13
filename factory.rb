@@ -36,6 +36,7 @@ class Factory
       end
 
       def []=(key, value)
+        key = members[key] if key.is_a? Integer
         instance_variable_set("@#{key}", value)
       end
 
