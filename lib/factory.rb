@@ -4,7 +4,7 @@ class Factory
   def self.new(*arguments, &block)
 
     class_name = if arguments.first.is_a? String
-                   unless arguments.first.match?(/^[A-Z]/)
+                   unless arguments.first.match(/^[A-Z]/)
                      raise(NameError, "identifier #{arguments.first} needs to be constant")
                    end
                    arguments.shift
